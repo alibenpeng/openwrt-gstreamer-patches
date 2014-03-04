@@ -1,4 +1,4 @@
-# Patches to add current gstreamer + gmrender-resurrect to OpenWRT
+## Patches to add current gstreamer + gmrender-resurrect to OpenWRT
 
 Based on [gmediarender-resurrect](https://github.com/hzeller/gmrender-resurrect), [OpenWrt-gmediarender](https://github.com/JiapengLi/OpenWrt-gmediarender/blob/master/README.md) and various patches on the [OpenWRT patch tracker](http://patchwork.openwrt.org/project/openwrt/list/).
 
@@ -22,3 +22,7 @@ This HOWTO assumes that you already have a configured OpenWRT Buildroot or SDK
 	make package/<package name>/install V=s
 	make package/index
 
+
+The patches for gst1-plugins-bad and gst1-plugins-ugly are untested and only included for the sake of completeness.
+
+For a more detailled description of what this is good for, see [my blog](http://testblog.arles-electrique.de)
