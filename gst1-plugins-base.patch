@@ -1,0 +1,384 @@
+diff --git a/multimedia/gst1-plugins-base/Makefile b/multimedia/gst1-plugins-base/Makefile
+new file mode 100644
+index 0000000..3d32d3c
+--- /dev/null
++++ b/multimedia/gst1-plugins-base/Makefile
+@@ -0,0 +1,237 @@
++#
++# Copyright (C) 2008-2011 OpenWrt.org
++#
++# This is free software, licensed under the GNU General Public License v2.
++# See /LICENSE for more information.
++#
++
++include $(TOPDIR)/rules.mk
++
++PKG_NAME:=gst1-plugins-base
++PKG_VERSION:=1.2.2
++PKG_RELEASE:=1
++
++PKG_BUILD_DIR:=$(BUILD_DIR)/gst-plugins-base-$(PKG_VERSION)
++PKG_SOURCE:=gst-plugins-base-$(PKG_VERSION).tar.xz
++PKG_SOURCE_URL:=http://gstreamer.freedesktop.org/src/gst-plugins-base/
++PKG_MD5SUM:=ed0fd639a10d91870cc1d55727bb4f44
++
++PKG_BUILD_DEPENDS:= gstreamer1 liboil
++PKG_CONFIG_DEPENDS:= \
++	CONFIG_PACKAGE_gst1-mod-alsa \
++	CONFIG_PACKAGE_gst1-mod-app \
++	CONFIG_PACKAGE_gst1-mod-audioconvert \
++	CONFIG_PACKAGE_gst1-mod-audiorate \
++	CONFIG_PACKAGE_gst1-mod-audioresample \
++	CONFIG_PACKAGE_gst1-mod-audiotestsrc \
++	CONFIG_PACKAGE_gst1-mod-gio \
++	CONFIG_PACKAGE_gst1-mod-ogg \
++	CONFIG_PACKAGE_gst1-mod-tcp \
++	CONFIG_PACKAGE_gst1-mod-theora \
++	CONFIG_PACKAGE_gst1-mod-videotestsrc \
++	CONFIG_PACKAGE_gst1-mod-volume \
++	CONFIG_PACKAGE_gst1-mod-vorbis \
++
++PKG_FIXUP:=autoreconf
++PKG_INSTALL:=1
++
++include $(INCLUDE_DIR)/package.mk
++include $(INCLUDE_DIR)/nls.mk
++
++# -liconv crept in from pkg-config, to be revisited later
++include $(INCLUDE_DIR)/nls.mk
++
++define Package/gstreamer1/Default
++  CATEGORY:=Multimedia
++  SECTION:=multimedia
++  TITLE:=GStreamer
++  URL:=http://gstreamer.freedesktop.org/
++endef
++
++define Package/gstreamer1/description/Default
++ GStreamer open source multimedia framework
++endef
++
++
++define Package/gst1-plugins-base
++$(call Package/gstreamer1/Default)
++  TITLE+= plugins collection (base)
++  DEPENDS+= $(GST_DEPENDS)
++endef
++
++define Package/gts1-plugins-base/description
++$(call Package/gstreamer1/description/Default)
++ .
++ This meta package contains only dependencies to the other libraries and
++ plugins from the base plugins collection.
++endef
++
++
++GST_COND_SELECT = $(patsubst %,$(if $(CONFIG_PACKAGE_gst1-mod-$(1)),--enable,--disable)-%,$(1))
++
++GST_VERSION:=1.0
++
++CONFIGURE_ARGS += \
++	--disable-debug \
++	--disable-examples \
++	\
++	$(call GST_COND_SELECT,alsa) \
++	--disable-alsa-test \
++	$(call GST_COND_SELECT,app) \
++	$(call GST_COND_SELECT,audioconvert) \
++	$(call GST_COND_SELECT,audiorate) \
++	$(call GST_COND_SELECT,audioresample) \
++	$(call GST_COND_SELECT,audiotestsrc) \
++	--disable-cdparanoia \
++	--disable-ffmpegcolorspace \
++	--disable-freetypetest \
++	$(call GST_COND_SELECT,gio) \
++	--disable-gnome_vfs \
++	--disable-gst_v4l \
++	--disable-libvisual \
++	$(call GST_COND_SELECT,ogg) \
++	--disable-oggtest \
++	--disable-pango \
++	--disable-subparse \
++	$(call GST_COND_SELECT,tcp) \
++	$(call GST_COND_SELECT,theora) \
++	--disable-videorate \
++	--disable-videoscale \
++	$(call GST_COND_SELECT,videotestsrc) \
++	$(call GST_COND_SELECT,volume) \
++	$(call GST_COND_SELECT,vorbis) \
++	--disable-vorbistest \
++	--disable-x \
++	--disable-xshm \
++	--disable-xvideo \
++	\
++	--without-libiconv-prefix \
++	--without-libintl-prefix \
++	--without-x \
++	\
++	--with-audioresample-format=int \
++
++EXTRA_LDFLAGS+= \
++	-Wl,-rpath-link=$(STAGING_DIR)/usr/lib \
++
++
++define Build/InstallDev
++	$(INSTALL_DIR) $(1)/usr/include/gstreamer-$(GST_VERSION)
++	( cd $(PKG_INSTALL_DIR); $(CP) \
++		./usr/include/gstreamer-$(GST_VERSION)/* \
++		$(1)/usr/include/gstreamer-$(GST_VERSION)/ \
++	)
++	$(INSTALL_DIR) $(1)/usr/lib
++	( cd $(PKG_INSTALL_DIR); $(CP) \
++		./usr/lib/libgst*-$(GST_VERSION).{la,so*} \
++		$(1)/usr/lib/ \
++	)
++	$(INSTALL_DIR) $(1)/usr/lib/gstreamer-$(GST_VERSION)
++	( cd $(PKG_INSTALL_DIR); $(CP) \
++		./usr/lib/gstreamer-$(GST_VERSION)/libgst*.{la,so} \
++		$(1)/usr/lib/gstreamer-$(GST_VERSION)/ \
++	)
++	$(INSTALL_DIR) $(1)/usr/lib/pkgconfig
++	( cd $(PKG_INSTALL_DIR); $(CP) \
++		./usr/lib/pkgconfig/gstreamer*-$(GST_VERSION).pc \
++		$(1)/usr/lib/pkgconfig/ \
++	)
++endef
++
++
++define Package/gst1-plugins-base/install
++	/bin/true
++endef
++
++
++# 1: short name
++# 2: description
++# 3: dependencies on other gstreamer libraries (short name)
++# 4: dependencies on other packages
++define GstBuildLibrary
++
++  GST_DEPENDS += +libgst1$(1)
++
++  define Package/libgst1$(1)
++    $(call Package/gstreamer1/Default)
++    TITLE+= $(2) library (base)
++    DEPENDS+= +libgstreamer1 $$(foreach p,$(3),+libgst1$$(p)) $(4)
++  endef
++
++  define Package/libgst1$(1)/description
++   $(call Package/gstreamer1/description/Default)
++   .
++   This package contains the GStreamer $(2) library.
++  endef
++
++  define Package/libgst1$(1)/install
++	$(INSTALL_DIR) $$(1)/usr/lib
++	( cd $(PKG_INSTALL_DIR); $(CP) \
++		./usr/lib/libgst$(1)-$(GST_VERSION).so.* \
++		$$(1)/usr/lib/ \
++	)
++  endef
++
++  $$(eval $$(call BuildPackage,libgst1$(1)))
++endef
++
++$(eval $(call GstBuildLibrary,app,app,,))
++$(eval $(call GstBuildLibrary,audio,audio,tag,))
++$(eval $(call GstBuildLibrary,fft,FFT,,))
++$(eval $(call GstBuildLibrary,pbutils,utils,audio tag video,))
++$(eval $(call GstBuildLibrary,riff,RIFF media,audio tag,,))
++$(eval $(call GstBuildLibrary,rtp,RTP,,))
++$(eval $(call GstBuildLibrary,rtsp,RTSP,,))
++$(eval $(call GstBuildLibrary,sdp,SDP,,))
++$(eval $(call GstBuildLibrary,tag,tag support,,))
++$(eval $(call GstBuildLibrary,video,video,,))
++
++
++# 1: short name
++# 2: description
++# 3: dependencies on other gstreamer libraries (short name)
++# 4: dependencies on other gstreamer plugins (short name)
++# 5: dependencies on other packages
++define GstBuildPlugin
++
++  GST_DEPENDS += +gst1-mod-$(1)
++
++  define Package/gst1-mod-$(1)
++    $(call Package/gstreamer1/Default)
++    TITLE+= $(2) plugin (base)
++    DEPENDS+= +libgstreamer1 $$(foreach p,$(3),+libgst1$$(p)) $$(foreach p,$(4),+gst1-mod-$$(p)) $(5)
++  endef
++
++  define Package/gst1-mod-$(1)/description
++   $(call Package/gstreamer1/description/Default)
++   .
++   This package contains the GStreamer $(2) plugin.
++  endef
++
++  define Package/gst1-mod-$(1)/install
++	$(INSTALL_DIR) $$(1)/usr/lib/gstreamer-$(GST_VERSION)
++	( cd $(PKG_INSTALL_DIR); $(CP) \
++		./usr/lib/gstreamer-$(GST_VERSION)/libgst$(1).so* \
++		$$(1)/usr/lib/gstreamer-$(GST_VERSION)/ \
++	)
++  endef
++
++  $$(eval $$(call BuildPackage,gst1-mod-$(1)))
++endef
++
++$(eval $(call GstBuildPlugin,alsa,ALSA,audio tag,,+alsa-lib))
++$(eval $(call GstBuildPlugin,app,app,app,,))
++$(eval $(call GstBuildPlugin,audioconvert,audio format conversion,audio,,))
++$(eval $(call GstBuildPlugin,audiorate,audio rate adjusting,audio tag,,))
++$(eval $(call GstBuildPlugin,audioresample,audio resampling,audio tag,,))
++$(eval $(call GstBuildPlugin,audiotestsrc,audio test,audio tag controller,,))
++$(eval $(call GstBuildPlugin,playback,media decoder (v2),pbutils,,))
++$(eval $(call GstBuildPlugin,gio,GIO,,,))
++$(eval $(call GstBuildPlugin,ogg,Ogg,riff tag pbutils video,,+libogg))
++$(eval $(call GstBuildPlugin,tcp,TCP,,,))
++$(eval $(call GstBuildPlugin,typefindfunctions,'typefind' functions,audio pbutils tag video,,))
++$(eval $(call GstBuildPlugin,videotestsrc,video test,video,,+liboil))
++$(eval $(call GstBuildPlugin,volume,volume,audio controller,,+liboil))
++$(eval $(call GstBuildPlugin,vorbis,Vorbis,audio tag,ogg,+libvorbis))
++
++$(eval $(call BuildPackage,gst1-plugins-base))
+diff --git a/multimedia/gst1-plugins-base/patches/001-no_docs.patch b/multimedia/gst1-plugins-base/patches/001-no_docs.patch
+new file mode 100644
+index 0000000..87343b2
+--- /dev/null
++++ b/multimedia/gst1-plugins-base/patches/001-no_docs.patch
+@@ -0,0 +1,36 @@
++diff -u --recursive gst-plugins-base-1.0.7-vanilla/Makefile.am gst-plugins-base-1.0.7/Makefile.am
++--- gst-plugins-base-1.0.7-vanilla/Makefile.am	2013-06-01 22:38:30.495678685 -0500
+++++ gst-plugins-base-1.0.7/Makefile.am	2013-06-01 22:39:04.374335121 -0500
++@@ -12,14 +12,12 @@
++ 	gst sys $(SUBDIRS_EXT) 	\
++ 	tools 			\
++ 	tests 			\
++-	docs			\
++ 	po 			\
++ 	common 			\
++ 	m4
++ 
++ DIST_SUBDIRS = 			\
++ 	pkgconfig		\
++-	docs			\
++ 	gst-libs		\
++ 	gst sys ext		\
++ 	tools 			\
++diff -u --recursive gst-plugins-base-1.0.7-vanilla/Makefile.in gst-plugins-base-1.0.7/Makefile.in
++--- gst-plugins-base-1.0.7-vanilla/Makefile.in	2013-06-01 22:38:30.527677416 -0500
+++++ gst-plugins-base-1.0.7/Makefile.in	2013-06-01 22:38:59.110543873 -0500
++@@ -493,14 +493,12 @@
++ 	gst sys $(SUBDIRS_EXT) 	\
++ 	tools 			\
++ 	tests 			\
++-	docs			\
++ 	po 			\
++ 	common 			\
++ 	m4
++ 
++ DIST_SUBDIRS = \
++ 	pkgconfig		\
++-	docs			\
++ 	gst-libs		\
++ 	gst sys ext		\
++ 	tools 			\
+diff --git a/multimedia/gst1-plugins-base/patches/002-no_tests.patch b/multimedia/gst1-plugins-base/patches/002-no_tests.patch
+new file mode 100644
+index 0000000..9b4a513
+--- /dev/null
++++ b/multimedia/gst1-plugins-base/patches/002-no_tests.patch
+@@ -0,0 +1,38 @@
++diff -u --recursive gst-plugins-base-1.0.7-vanilla/Makefile.am gst-plugins-base-1.0.7/Makefile.am
++--- gst-plugins-base-1.0.7-vanilla/Makefile.am	2013-06-01 19:49:37.986260708 -0500
+++++ gst-plugins-base-1.0.7/Makefile.am	2013-06-01 19:49:54.998590479 -0500
++@@ -11,7 +11,6 @@
++ 	gst-libs 		\
++ 	gst sys $(SUBDIRS_EXT) 	\
++ 	tools 			\
++-	tests 			\
++ 	po 			\
++ 	common 			\
++ 	m4
++@@ -21,7 +20,6 @@
++ 	gst-libs		\
++ 	gst sys ext		\
++ 	tools 			\
++-	tests 			\
++ 	po 			\
++ 	common 			\
++ 	m4
++diff -u --recursive gst-plugins-base-1.0.7-vanilla/Makefile.in gst-plugins-base-1.0.7/Makefile.in
++--- gst-plugins-base-1.0.7-vanilla/Makefile.in	2013-06-01 19:49:37.987260668 -0500
+++++ gst-plugins-base-1.0.7/Makefile.in	2013-06-01 19:49:58.374457466 -0500
++@@ -492,7 +492,6 @@
++ 	gst-libs 		\
++ 	gst sys $(SUBDIRS_EXT) 	\
++ 	tools 			\
++-	tests 			\
++ 	po 			\
++ 	common 			\
++ 	m4
++@@ -502,7 +501,6 @@
++ 	gst-libs		\
++ 	gst sys ext		\
++ 	tools 			\
++-	tests 			\
++ 	po 			\
++ 	common 			\
++ 	m4
+diff --git a/multimedia/gst1-plugins-base/patches/003-no_translations.patch b/multimedia/gst1-plugins-base/patches/003-no_translations.patch
+new file mode 100644
+index 0000000..581cef5
+--- /dev/null
++++ b/multimedia/gst1-plugins-base/patches/003-no_translations.patch
+@@ -0,0 +1,49 @@
++diff -u --recursive gst-plugins-base-1.0.7-vanilla/configure.ac gst-plugins-base-1.0.7/configure.ac
++--- gst-plugins-base-1.0.7-vanilla/configure.ac	2013-06-01 19:48:21.931257133 -0500
+++++ gst-plugins-base-1.0.7/configure.ac	2013-06-01 19:51:30.371829534 -0500
++@@ -923,7 +923,6 @@
++ docs/libs/Makefile
++ docs/plugins/Makefile
++ docs/version.entities
++-po/Makefile.in
++ common/Makefile
++ common/m4/Makefile
++ m4/Makefile
++diff -u --recursive gst-plugins-base-1.0.7-vanilla/Makefile.am gst-plugins-base-1.0.7/Makefile.am
++--- gst-plugins-base-1.0.7-vanilla/Makefile.am	2013-06-01 19:50:30.232202309 -0500
+++++ gst-plugins-base-1.0.7/Makefile.am	2013-06-01 19:50:58.973069965 -0500
++@@ -11,7 +11,6 @@
++ 	gst-libs 		\
++ 	gst sys $(SUBDIRS_EXT) 	\
++ 	tools 			\
++-	po 			\
++ 	common 			\
++ 	m4
++ 
++@@ -20,7 +19,6 @@
++ 	gst-libs		\
++ 	gst sys ext		\
++ 	tools 			\
++-	po 			\
++ 	common 			\
++ 	m4
++ 
++diff -u --recursive gst-plugins-base-1.0.7-vanilla/Makefile.in gst-plugins-base-1.0.7/Makefile.in
++--- gst-plugins-base-1.0.7-vanilla/Makefile.in	2013-06-01 19:50:30.233202273 -0500
+++++ gst-plugins-base-1.0.7/Makefile.in	2013-06-01 19:51:22.796130711 -0500
++@@ -492,7 +492,6 @@
++ 	gst-libs 		\
++ 	gst sys $(SUBDIRS_EXT) 	\
++ 	tools 			\
++-	po 			\
++ 	common 			\
++ 	m4
++ 
++@@ -501,7 +500,6 @@
++ 	gst-libs		\
++ 	gst sys ext		\
++ 	tools 			\
++-	po 			\
++ 	common 			\
++ 	m4
++ 
